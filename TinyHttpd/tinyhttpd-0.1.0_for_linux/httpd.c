@@ -514,24 +514,28 @@ void serve_file(int client, const char *filename)
  * Parameters: pointer to variable containing the port to connect on
  * Returns: the socket */
 /**********************************************************************/
-// 启动服务端
+// 启动服务端:初始化 httpd 服务，包括建立套接字，绑定端口，进行监听等
 int startup(u_short *port)
 {
   int httpd = 0;
   struct sockaddr_in name;
   // 设置http socket
   httpd = socket(PF_INET, SOCK_STREAM, 0);
+  debug("Get socket [httpd]:[%d]", httpd);
+
   if (httpd == -1)
     error_die("socket");
   memset(&name, 0, sizeof(name));
   name.sin_family = AF_INET;
   name.sin_port = htons(*port);
+  debug("name.sin_port=[%d]",name.sin_port);
   name.sin_addr.s_addr = htonl(INADDR_ANY);
   // 绑定端口
   if (bind(httpd, (struct sockaddr *)&name, sizeof(name)) < 0)
     error_die("bind");
-  if (*port == 0) /*动态分配一个端口 */
+  if (name.sin_port == 0) /*动态分配一个端口 */
   {
+    debug("sin_port is 0, will gain a random port");
     socklen_t namelen = sizeof(name);
     if (getsockname(httpd, (struct sockaddr *)&name, &namelen) == -1)
       error_die("getsockname");
@@ -542,6 +546,7 @@ int startup(u_short *port)
     error_die("listen");
   return (httpd);
 }
+//Here...
 
 /**********************************************************************/
 /** Inform the client that the requested web method has not been
@@ -575,13 +580,13 @@ void unimplemented(int client)
 int main(void)
 {
   int server_sock = -1;
-  u_short port = 7878;
+  u_short port = 0;
   int client_sock = -1;
   struct sockaddr_in client_name;
   socklen_t client_name_len = sizeof(client_name);
   pthread_t newthread;
 
-  debug("Enter...");
+  debug("\n\nEnter...");
   // 启动server socket
   server_sock = startup(&port);
 
